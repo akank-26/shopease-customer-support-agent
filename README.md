@@ -9,6 +9,7 @@ The agent answers questions about ShopEase policies using a local knowledge base
 
 ## What it can do
 
+
 | Capability | Implementation |
 | --- | --- |
 | Answer policy questions | Retrieve relevant passages from shipping, return, refund, and contact-support documents, then generate a grounded answer |
@@ -19,6 +20,29 @@ The agent answers questions about ShopEase policies using a local knowledge base
 | Expose an interface | FastAPI backend and Streamlit UI, tested locally |
 | Debug execution | LangSmith traces for the combined agent, retrieval, LLM calls, and secure order lookup |
 | Run regression checks | pytest tests and a six-scenario LangSmith offline golden dataset |
+
+
+## Demo & Screenshots
+
+### Customer Support Interface
+
+The Streamlit UI supports policy questions and order-related requests.
+
+![ShopEase Customer Support Agent UI](docs/images/agent-ui.png)
+
+### LangSmith Observability
+
+LangSmith traces show the agent execution flow, including retrieval,
+LLM calls, and secure order lookup.
+
+![LangSmith Agent Trace](docs/images/langsmith-trace.png)
+
+### Offline Evaluation
+
+The ShopEase golden dataset includes six regression scenarios (R01–R06).
+The screenshot shows the actual evaluation results recorded in LangSmith.
+
+![LangSmith Offline Evaluation](docs/images/offline-evaluation.png)
 
 ## Architecture
 
