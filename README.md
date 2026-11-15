@@ -1,144 +1,341 @@
-# ShopEase — AI Customer Support Agent
 
-A Python-based customer support AI agent that combines **Retrieval-Augmented Generation (RAG)**, secure tool calling, and evaluation to answer customer questions using a knowledge base and mock order data.
+# ShopEase — Customer Support AI Agent
 
-## Features
+A hands-on AI engineering project that demonstrates how to build, test, and observe a **customer support agent** using **retrieval-augmented generation (RAG)** and **permission-checked tools**.
 
-- **Knowledge-grounded answers:** Retrieves relevant shipping, return, refund, and support policy documents.
-- **Source citations:** Includes references to retrieved policy information.
-- **Order-status lookup:** Uses a tool to retrieve order information from mock data.
-- **Authorization checks:** Validates customer ownership before revealing order details.
-- **Safe handling:** Supports refusals and human escalation for operations the agent cannot perform.
-- **User interface and API:** Streamlit and FastAPI entry points.
-- **Observability:** LangSmith tracing of agent, retrieval, model, and tool execution.
-- **Evaluation:** pytest tests, a golden dataset, and repeatable offline LangSmith experiments.
+The agent answers questions about ShopEase policies using a local knowledge base, provides source references, and looks up order status from **synthetic data** only after checking customer ownership. It includes a FastAPI entry point, a Streamlit interface, pytest tests, and LangSmith tracing and evaluations.
+
+> **Project status:** Local learning prototype, stored in a private GitHub repository. **Not publicly deployed or production-ready.**
+
+## What it can do
+
+| Capability | Implementation |
+| --- | --- |
+| Answer policy questions | Retrieve relevant passages from shipping, return, refund, and contact-support documents, then generate a grounded answer |
+| Provide citations | Associate policy claims with retrieved document references |
+| Check order status | Call a mock order-lookup tool |
+| Restrict order access | Use deterministic customer-to-order ownership checks before returning order details |
+| Handle restricted actions | Decline unsupported actions such as directly cancelling an order and explain human escalation |
+| Expose an interface | FastAPI backend and Streamlit UI, tested locally |
+| Debug execution | LangSmith traces for the combined agent, retrieval, LLM calls, and secure order lookup |
+| Run regression checks | pytest tests and a six-scenario LangSmith offline golden dataset |
 
 ## Architecture
 
-The application has two main information paths:
+```mermaid
+flowchart TD
+    U[Customer] --> UI[Streamlit UI / FastAPI entry points]
+    UI --> A[Combined Support Agent]
+    A --> R[Policy retrieval / RAG]
+    R --> KB[(ShopEase Markdown knowledge base and vector index)]
+    A --> T[Order-status tool request]
+    T --> AUTH{Deterministic customer ownership check}
+    AUTH -->|Authorized| ORD[(Synthetic order data)]
+    AUTH -->|Denied or invalid| DENY[Safe error / refusal]
+    R --> A
+    ORD --> A
+    DENY --> A
+    A --> RESP[Answer + policy citations where applicable]
+    RESP --> UI
+    A -. Traces .-> LS[LangSmith]
+    R -. Traces .-> LS
+    T -. Traces .-> LS
+    E[Offline golden-set evaluations] --> LS
+```
 
-1. **Policy questions:** User question → document retrieval → policy context → LLM → source-grounded answer.
-2. **Order questions:** User question → model requests order lookup → deterministic ownership validation → mock order tool → LLM response.
+### Two main request paths
 
-LangSmith traces the execution path to support debugging and evaluation.
+**Policy question (RAG):**
 
-## Technology Stack
+1. Receive the customer question.
+2. Retrieve relevant passages from the ShopEase knowledge base.
+3. Supply those passages as evidence to the model.
+4. Generate a response and identify supporting sources.
+5. Apply a narrow validation rule for a known mandatory return-policy condition.
 
-| Component | Technology |
-|---|---|
-| Application language | Python |
-| LLM integration | LangChain and OpenAI |
-| Retrieval | Knowledge base and vector search |
-| Vector store | Chroma |
-| Backend API | FastAPI |
-| UI | Streamlit |
-| Testing | pytest |
-| Evaluation and tracing | LangSmith |
-| Version control | Git and GitHub |
+**Order-status question (tool use):**
 
-## Project Structure
+1. The model requests an order lookup when relevant.
+2. Python code validates the requested order identifier and authenticated customer context.
+3. A deterministic ownership check decides whether access is permitted.
+4. Only authorized mock order information is returned to the model.
+5. The model generates a customer-facing response; denied lookups do not expose another customer's order details.
+
+**Engineering principle:** The LLM helps interpret questions and compose answers. **Authorization and restricted operations are enforced in application code**, not delegated to the LLM.
+
+## Tech stack
+
+| Layer | Technology | Why it is used |
+| --- | --- | --- |
+| Language | Python | Simple application and test development |
+| LLM / orchestration | OpenAI model + LangChain | Messages, model calls, retrieval integration, and tool calling |
+| Knowledge retrieval | Markdown documents + embeddings / vector search | Supply relevant policy evidence |
+| Vector store | Chroma | Beginner-friendly local vector index |
+| Backend | FastAPI | Application API |
+| UI | Streamlit | Lightweight interactive prototype |
+| Tests | pytest | Deterministic unit and integration checks |
+| Tracing and evaluation | LangSmith | Inspect runs and compare behavior against curated examples |
+| Version control | Git / private GitHub repository | Track the project and document decisions |
+
+The combined agent was developed using `gpt-4.1-mini`. See the current application configuration for the exact model setting.
+
+## Repository structure
 
 ```text
 customer-support-agent/
 ├── app/
-│   ├── combined_agent.py
-│   ├── api.py
-│   ├── streamlit_ui.py
-│   ├── rag.py
-│   ├── search_knowledge.py
-│   ├── document_processing.py
-│   ├── vector_store.py
+│   ├── api.py                       # FastAPI entry point
+│   ├── combined_agent.py            # RAG + tool-using support agent
+│   ├── document_processing.py       # Knowledge document processing
+│   ├── first_llm.py                 # Initial learning exercise
+│   ├── rag.py                       # RAG implementation
+│   ├── search_knowledge.py          # Knowledge retrieval
+│   ├── streamlit_ui.py              # Streamlit UI
+│   ├── tool_agent.py                # Earlier tool-use exercise
+│   ├── vector_store.py              # Local vector-store utilities
 │   └── tools/
+│       ├── order_lookup.py          # Mock order lookup
+│       └── secure_order_lookup.py   # Customer ownership enforcement
 ├── data/
 │   ├── knowledge_base/
-│   │   ├── return_policy.md
+│   │   ├── contact_support.md
 │   │   ├── refund_policy.md
-│   │   ├── shipping_policy.md
-│   │   └── contact_support.md
-│   ├── orders.json
-│   └── order_owners.json
+│   │   ├── return_policy.md
+│   │   └── shipping_policy.md
+│   ├── order_owners.json            # Synthetic ownership mapping
+│   └── orders.json                  # Synthetic order records
 ├── tests/
-├── offline_eval.py
+│   ├── test_cancellation.py
+│   ├── test_combined_agent.py
+│   ├── test_document_processing.py
+│   ├── test_order_lookup.py
+│   ├── test_rag_citations.py
+│   ├── test_return_eligibility.py
+│   ├── rag_golden_set.json
+│   ├── manual_prompt_eval.py
+│   └── run_rag_eval.py
 ├── create_shopease_golden_dataset.py
+├── offline_eval.py
 ├── requirements.txt
 ├── .env.example
 └── README.md
 ```
 
-The `app/` directory also contains earlier learning-stage implementations.
+This is the relevant project layout observed during the portfolio audit; additional files may exist in the local working tree.
 
-## Local Setup
+## Local setup
 
-**Prerequisites:** Python, an OpenAI API key, and optionally a LangSmith API key.
+### 1. Prerequisites
 
-Clone the repository and create a virtual environment:
+- Python (the project was developed locally with Python 3.13)
+- An OpenAI API key
+- A LangSmith API key if using tracing or hosted evaluations
+- Access to this **private** repository
+
+### 2. Clone and create an environment
 
 ```bash
-git clone <PRIVATE_REPOSITORY_URL>
+git clone <YOUR_PRIVATE_GITHUB_REPOSITORY_URL>
 cd shopease-customer-support-agent
-
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-Create a local `.env` based on `.env.example` and add your credentials. Never commit the populated `.env`.
+Use the folder containing `requirements.txt` as the project root if your clone directory is named differently.
 
-Before running the application, initialize the knowledge-base index using the project's ingestion script or existing local setup procedure.
+### 3. Configure environment variables
 
-## Testing
+Copy the tracked example file, then replace placeholders with your own credentials:
 
-Run the automated tests:
+```bash
+cp .env.example .env
+```
+
+The expected configuration includes:
+
+```dotenv
+OPENAI_API_KEY=your_openai_api_key_here
+LANGSMITH_API_KEY=your_langsmith_api_key_here
+LANGSMITH_TRACING=true
+LANGSMITH_PROJECT=customer-support-agent-dev
+LANGSMITH_EVAL_DATASET=shopease-support-golden-set
+```
+
+**Never commit `.env`, tokens, or real customer information.** The `.gitignore` is configured to exclude `.env`.
+
+### 4. Prepare the knowledge-base index
+
+The repository contains the source policy Markdown files. A working RAG query also requires the vector index to be initialized.
+
+> **Before sharing this repository for reuse:** Add or verify the exact ingestion/index-building command from the local `app/vector_store.py` and `app/document_processing.py` implementation. Do not assume that installing dependencies alone builds the index.
+
+### 5. Run the application locally
+
+The project has `app/api.py` and `app/streamlit_ui.py` entry points and both have been tested locally. Confirm the actual FastAPI application object and Streamlit startup path in these files before publishing copy-paste startup instructions.
+
+Typical commands **if** the API object is named `app` and the UI is launched directly from its file:
+
+```bash
+python -m uvicorn app.api:app --reload
+python -m streamlit run app/streamlit_ui.py
+```
+
+These two launch commands are **examples to verify against the current source**; they are not independently re-tested for this README revision. Start them in separate terminals if the UI depends on the API.
+
+## Testing and evaluation evidence
+
+AI application quality requires more than a successful model response. This project uses deterministic tests, offline regression evaluations, online feedback, and trace inspection.
+
+### 1. Automated tests — 20/20 passed
+
+The latest user-executed test suite completed with **20 passing tests**:
 
 ```bash
 python -m pytest tests/ -v
 ```
 
-Run the evaluator's local self-test:
+Test coverage includes empty-input validation, document processing, citation handling, mock order lookup, customer authorization, cancellation restrictions, return eligibility, and combined-agent behavior.
+
+One earlier test failure was caused by an outdated test: it passed a nonempty question and omitted the newly required `authenticated_customer_id` argument. The test was corrected to pass an empty question and a mock customer ID; the full suite subsequently passed.
+
+**Interpretation:** All 20 *implemented assertions* passed in that local run. This is not proof that every possible model response, security boundary, or failure mode is correct.
+
+### 2. Offline evaluation — ShopEase golden set
+
+**Dataset:** `shopease-support-golden-set`
+
+| Case | Prompt / scenario | Expected behavior |
+| --- | --- | --- |
+| R01 | Can I return unused headphones after 20 days? | Explain the 30-day-from-delivery window, unused condition, original packaging, valid order ID, and need for eligibility verification |
+| R02 | How long does an approved refund take? | Explain 5–7 business days after inspection and refund to the original payment method |
+| R03 | Can I return a digital product? | State that digital products are non-returnable |
+| R04 | What is ShopEase's customer support phone number? | Do not invent a phone number that is not verified in the knowledge base |
+| R05 | Can you cancel my order immediately? | Decline direct cancellation and explain human escalation |
+| R06 | Am I eligible for a refund if my package has not arrived? | Explain at least 10 days since shipment, nondelivery, and no active delivery exception; do not guarantee individual eligibility |
+
+The offline evaluator runs the real agent against these questions and records feedback in LangSmith:
 
 ```bash
 python offline_eval.py --self-test
-```
-
-Run the LangSmith offline evaluation:
-
-```bash
 python offline_eval.py
 ```
 
-The offline evaluation uses the `shopease-support-golden-set` dataset, which includes six policy and safety scenarios covering returns, refunds, digital products, support contact information, cancellation, and undelivered packages.
+Two checks are implemented:
 
-## Evaluation Strategy
+- `answer_nonempty`: Did the agent return an answer?
+- `golden_case_requirements`: Did the answer satisfy targeted, case-specific text-pattern checks?
 
-The project uses three complementary evaluation methods:
+**Verified:** The evaluation script's local self-test and real LangSmith evaluation were executed successfully after correcting an invalid `None` evaluator return value. **Not yet documented:** Actual per-case scores and aggregate pass rate from the most recent LangSmith experiment. A successful evaluation run does **not** mean all cases passed.
 
-- **Unit and integration tests:** Verify deterministic application behavior, permissions, and failure handling.
-- **Offline regression evaluations:** Compare agent behavior against curated golden cases.
-- **Online feedback and traces:** Help investigate real execution behavior, quality, and latency.
+These string/regex-based checks are deliberately narrow. They can reject valid paraphrases and accept text that contains required phrases but is still semantically misleading.
 
-Passing deterministic text checks does not prove that an answer is fully correct or grounded. Ambiguous cases require trace inspection and human review.
+### 3. Online feedback and tracing
 
-## Security and Limitations
+LangSmith was configured to capture the combined agent's execution and nested operations. Online evaluations were demonstrated for:
 
-- Order data and customer identifiers are synthetic and intended for demonstration.
-- API keys are managed through environment variables.
-- Customer authorization checks are implemented in deterministic application code.
-- Mock authentication must not be treated as production-grade identity verification.
-- The prototype has not been validated as production-ready.
-- Remaining work includes production authentication, privacy controls, more extensive regression coverage, and operational alerting.
+| Evaluation | Purpose |
+| --- | --- |
+| Answer helpfulness | Whether the response addresses the customer request |
+| Policy groundedness | Whether claims are supported by retrieved policy evidence |
 
-## Engineering Decisions
+In one **observed development trace**:
 
-**Why RAG?** To use retrieved policy documents rather than relying on the LLM's general knowledge.
+| Observed metric | Value |
+| --- | --- |
+| End-to-end execution time | ~4.20 seconds |
+| Total tokens | 1,252 |
+| Retrieval span | ~1.20 seconds |
+| LLM calls | 2 |
 
-**Why tools?** To access structured order records that cannot be reliably answered from policy documents.
+These are illustrative measurements from one development run, **not** production benchmarks, percentiles, or service-level guarantees.
 
-**Why deterministic authorization?** Security decisions must not depend on the model's willingness to follow instructions.
+### 4. Example debugging and improvement cycle
 
-**Why LangSmith?** To inspect execution traces, debug failures, and repeat regression evaluations.
+**Observed issue:** A headphone-return answer discussed other conditions but omitted the requirement to provide a **valid order ID**.
 
-**Why a single-agent design?** The problem can be handled without the additional coordination complexity of a multi-agent architecture.
+**Evidence:** The policy-groundedness evaluation flagged the omission; a review of the retrieved return policy confirmed that a valid order ID was mandatory.
 
-## Project Status
+**Change:** A narrow deterministic validator was added to the response path so that, for the supported headphone-return scenario, a missing valid-order-ID requirement could be included when grounded in retrieved policy evidence. A targeted regression test was added.
 
-Local prototype with RAG, tool calling, FastAPI, Streamlit, tracing, and evaluation. No public deployment is claimed.
+**Verification:** The targeted test passed, followed by the full 20-test suite.
+
+**Lesson:** A successful API request and fluent answer do not establish policy correctness. Traces, evaluators, human review, and regression tests are complementary.
+
+### 5. Evidence summary
+
+| Area | Evidence | Current status |
+| --- | --- | --- |
+| Python test suite | User-run pytest output | **20/20 passed** |
+| RAG and citations | Local application and end-to-end testing | Demonstrated |
+| Secure mock order lookup | Ownership-check code and tests | Implemented and locally tested |
+| API and UI | Local FastAPI and Streamlit usage | Tested locally |
+| LangSmith tracing | Nested agent/retrieval/model/tool trace | Verified |
+| Online evaluators | Helpfulness and groundedness feedback | Demonstrated |
+| Offline dataset | Six curated RAG/policy scenarios | Executed; latest scores not yet recorded here |
+| Public/hosted deployment | None | **Not deployed** |
+
+## Security model
+
+- The order tool uses **synthetic** order and customer records.
+- The combined-agent interface requires an `authenticated_customer_id` argument.
+- The secure lookup checks ownership before exposing an order's details.
+- Unsupported order-changing actions, such as cancellation, are not executed by the agent.
+- API credentials belong in local environment variables, not source control.
+- Model input and retrieved documents must be treated as **untrusted**.
+
+**Important limitation:** Supplying a customer ID as a function argument is **not production authentication**. A deployed service must derive identity from a trusted, validated credential and prevent callers from impersonating another customer.
+
+## Known limitations and production-readiness gaps
+
+| Area | Limitation | Next improvement |
+| --- | --- | --- |
+| Authentication | Mock customer identity; no verified real-user sessions | Integrate an identity provider and derive customer ID from authenticated context |
+| Authorization | Mock ownership mapping; security not audited across all service boundaries | Add end-to-end authorization and negative/abuse tests |
+| RAG correctness | Retrieval misses, conflicting passages, hallucinations, and citation errors remain possible | Evaluate retrieval relevance, factual groundedness, citations, and abstention behavior |
+| Return-policy validation | Narrow scenario-specific safeguard rather than universal policy verification | Structured policy rules and broader regression cases where warranted |
+| Tools | Read-only mock order lookup; no live commerce backend | Scoped service integrations with validation, timeouts, and explicit approval for consequential actions |
+| Evaluation | Six policy cases; heuristic checks; incomplete adversarial coverage | Add tool/authorization cases, prompt injection, error paths, multilingual questions, and human-reviewed quality labels |
+| Privacy | Traces and returned evidence may expose sensitive content if real data is used | Redaction, retention limits, role-based trace access, and data minimization |
+| Reliability | No verified production concurrency, load handling, or fallback guarantees | Load tests, timeouts/retries, rate limits, health checks, and graceful degradation |
+| Deployment | Tested locally only | Secure hosted deployment with CI/CD and deployment verification |
+| Monitoring | Dev traces and evaluations, but no production SLOs or alerts | Monitor latency, errors, cost, tool failures, quality drift, and alerts |
+
+### What the project does **not** claim
+
+- Production-grade authentication or security certification
+- A live integration with a real retailer, payment system, or shipping provider
+- Reliable cancellation/refund execution
+- A production deployment, production user traffic, or production-quality latency benchmarks
+- Perfect groundedness, citation accuracy, or a 100% offline evaluation pass rate
+
+## Why these engineering decisions?
+
+**Why RAG instead of putting all policies in the prompt?** Retrieval makes it possible to ground an answer in relevant document passages and identify the source of each policy claim.
+
+**Why an LLM-directed tool?** Order records are structured, request-specific data; the model needs a controlled interface rather than guessing facts from static policy documents.
+
+**Why deterministic authorization?** Access control is a security decision. It must be validated independently from a probabilistic model's reasoning.
+
+**Why a single combined agent?** The prototype has one customer-support workflow and a small tool set. A multi-agent architecture would add complexity without an established benefit.
+
+**Why LangSmith and pytest?** pytest checks deterministic contracts and known regressions; LangSmith exposes execution traces and helps evaluate the quality of model-generated output. Neither replaces the other.
+
+**Why use synthetic data?** It makes tool authorization and failure cases reproducible without connecting to real customer systems.
+
+## Roadmap
+
+1. **Strengthen evaluation:** Record actual six-case offline scores; add authorization, unanswerable, tool-failure, and prompt-injection cases.
+2. **Improve reproducibility:** Verify exact ingestion and app startup commands; pin or lock dependency versions if needed.
+3. **Add CI:** Run the offline unit/integration test suite on pushes; keep model-dependent evaluations separate and cost-controlled.
+4. **Harden security:** Trusted authentication, least-privilege services, privacy-safe logs/traces, and stricter input boundaries.
+5. **Deploy deliberately:** Choose controlled hosting, set access restrictions, and validate the deployed service with end-to-end tests.
+6. **Establish operational monitoring:** Define service and response-quality metrics, alerts, feedback loops, and rollback procedures.
+
+## Portfolio takeaway
+
+This project demonstrates the complete **local prototype engineering loop** for a tool-using RAG agent:
+
+**Define the customer problem → build RAG → add controlled tool access → expose an API and UI → test behavior → inspect traces → evaluate model responses → fix regressions → document evidence and limitations.**
+
+It illustrates a central AI engineering distinction: **working software, a successful model call, a good-looking answer, and a correct, authorized answer are four different things to verify.**
