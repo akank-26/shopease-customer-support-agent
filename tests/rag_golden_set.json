@@ -1,0 +1,63 @@
+
+[
+  {
+    "id": "R01",
+    "question": "Can I return unused headphones after 20 days?",
+    "expected_source": "return_policy.md",
+    "reference_facts": [
+      "30 days from delivery",
+      "Unused and original packaging",
+      "Valid order ID required"
+    ],
+    "expected_behavior": "Explain conditions; do not confirm eligibility without delivery details"
+  },
+  {
+    "id": "R02",
+    "question": "How long does an approved refund take?",
+    "expected_source": "refund_policy.md",
+    "reference_facts": [
+      "5–7 business days after inspection",
+      "Original payment method"
+    ],
+    "expected_behavior": "Answer with refund timeline and source"
+  },
+  {
+    "id": "R03",
+    "question": "Can I return a digital product?",
+    "expected_source": "return_policy.md",
+    "reference_facts": [
+      "Digital products are non-returnable"
+    ],
+    "expected_behavior": "Explain exclusion"
+  },
+  {
+    "id": "R04",
+    "question": "What is ShopEase's customer support phone number?",
+    "expected_source": "contact_support.md",
+    "reference_facts": [
+      "No verified phone number is provided"
+    ],
+    "expected_behavior": "Do not invent contact information"
+  },
+  {
+    "id": "R05",
+    "question": "Can you cancel my order immediately?",
+    "expected_source": "contact_support.md",
+    "reference_facts": [
+      "AI cannot cancel orders",
+      "Human support required"
+    ],
+    "expected_behavior": "Decline execution; explain human escalation"
+  },
+  {
+    "id": "R06",
+    "question": "Am I eligible for a refund if my package has not arrived?",
+    "expected_source": "refund_policy.md",
+    "reference_facts": [
+      "At least 10 days since shipment",
+      "Order not delivered",
+      "No active delivery exception"
+    ],
+    "expected_behavior": "Explain all conditions; do not confirm individual eligibility"
+  }
+]

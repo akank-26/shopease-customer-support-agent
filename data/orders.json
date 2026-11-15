@@ -1,0 +1,21 @@
+
+{
+  "ORD-1024": {
+    "status": "Shipped",
+    "product": "Wireless Headphones",
+    "shipped_at": "2026-11-10",
+    "estimated_delivery": "2026-11-17"
+  },
+  "ORD-1025": {
+    "status": "Delivered",
+    "product": "Laptop Stand",
+    "shipped_at": "2026-11-05",
+    "delivered_at": "2026-11-08"
+  },
+  "ORD-1026": {
+    "status": "Processing",
+    "product": "USB-C Cable",
+    "shipped_at": null,
+    "estimated_delivery": null
+  }
+}

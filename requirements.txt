@@ -1,5 +1,7 @@
-langchain
-langchain-openai
-langsmith
-python-dotenv
-pytest
+langchain #agent orchestrator
+langchain-openai #embeddings
+langsmith #tracing
+python-dotenv #loading env variables
+pytest #for evals and monitoring
+langchain-text-splitters  #chunking
+langchain-chroma #vectordb for storing embeddings
