@@ -1,7 +1,7 @@
 
-# ShopEase — Customer Support AI Agent
+# Customer Support AI Agent
 
-A hands-on AI engineering project that demonstrates how to build, test, and observe a **customer support agent** using **retrieval-augmented generation (RAG)** and **permission-checked tools**.
+A hands-on AI project that demonstrates how to build, test, and observe a **customer support agent** using **retrieval-augmented generation (RAG)** and **permission-checked tools**.
 
 The agent answers questions about ShopEase policies using a local knowledge base, provides source references, and looks up order status from **synthetic data** only after checking customer ownership. It includes a FastAPI entry point, a Streamlit interface, pytest tests, and LangSmith tracing and evaluations.
 
