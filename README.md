@@ -333,7 +333,7 @@ These are illustrative measurements from one development run, **not** production
 - A production deployment, production user traffic, or production-quality latency benchmarks
 - Perfect groundedness, citation accuracy, or a 100% offline evaluation pass rate
 
-## Why these engineering decisions?
+## Why these decisions?
 
 **Why RAG instead of putting all policies in the prompt?** Retrieval makes it possible to ground an answer in relevant document passages and identify the source of each policy claim.
 
@@ -347,19 +347,8 @@ These are illustrative measurements from one development run, **not** production
 
 **Why use synthetic data?** It makes tool authorization and failure cases reproducible without connecting to real customer systems.
 
-## Roadmap
-
-1. **Strengthen evaluation:** Record actual six-case offline scores; add authorization, unanswerable, tool-failure, and prompt-injection cases.
-2. **Improve reproducibility:** Verify exact ingestion and app startup commands; pin or lock dependency versions if needed.
-3. **Add CI:** Run the offline unit/integration test suite on pushes; keep model-dependent evaluations separate and cost-controlled.
-4. **Harden security:** Trusted authentication, least-privilege services, privacy-safe logs/traces, and stricter input boundaries.
-5. **Deploy deliberately:** Choose controlled hosting, set access restrictions, and validate the deployed service with end-to-end tests.
-6. **Establish operational monitoring:** Define service and response-quality metrics, alerts, feedback loops, and rollback procedures.
-
 ## Portfolio takeaway
 
 This project demonstrates the complete **local prototype engineering loop** for a tool-using RAG agent:
 
 **Define the customer problem → build RAG → add controlled tool access → expose an API and UI → test behavior → inspect traces → evaluate model responses → fix regressions → document evidence and limitations.**
-
-It illustrates a central AI engineering distinction: **working software, a successful model call, a good-looking answer, and a correct, authorized answer are four different things to verify.**
